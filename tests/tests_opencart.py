@@ -3,22 +3,30 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver import ActionChains
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from page_object.admins_page import AdminsPage
+from page_object.user_page import UserPage
+from page_object.url import Urls
+from page_object.reg_page import RegPage
+from page_object.currency import Currency
+from page_object.main_page import MainPage
+from page_object.card_of_goods import CardGood
+from helpers import (random_string, random_phone, create_random_user, random_email, create_random_name_of_good,
+                     create_random_model)
 
 
 def test_main_page(browser, base_url):
     browser.get(base_url)
     assert "Your Store" in browser.title
-    browser.find_element(By.CLASS_NAME, "dropdown")
-    browser.find_element(By.CSS_SELECTOR, "#search")
-    browser.find_element(By.XPATH, "//*[@id='form-currency']/div/a/span").click()
-    meny_currency = browser.find_element(By.XPATH, "//*[@id='form-currency']/div/ul")
-    meny_currency.find_element(By.PARTIAL_LINK_TEXT, "€ Euro")
-    meny_currency.find_element(By.PARTIAL_LINK_TEXT,  "£ Pound Sterling")
-    meny_currency.find_element(By.PARTIAL_LINK_TEXT, "$ US Dollar")
+    MainPage(browser).search()
+    MainPage(browser).main_meny()
+    MainPage(browser).feautured_product_name()
+    browser.execute_script("window.scrollBy(0, 600)")
+    time.sleep(2)
+    MainPage(browser).feautured_product_click()
 
 
 def test_cataloge(browser, base_url):
-    browser.get(base_url + "/en-gb/catalog/")
+    browser.get(Urls(base_url).url_cataloge())
     browser.find_element(By.CSS_SELECTOR, "#column-left").find_element(By.CSS_SELECTOR,
                                                                        "#column-left > div.list-group.mb-3")
     browser.find_element(By.PARTIAL_LINK_TEXT, "Desktops (").click()
@@ -29,16 +37,18 @@ def test_cataloge(browser, base_url):
     browser.find_element(By.PARTIAL_LINK_TEXT, "Phones & PDAs (").click()
     browser.find_element(By.PARTIAL_LINK_TEXT, "Cameras (").click()
     browser.find_element(By.PARTIAL_LINK_TEXT, "MP3 Players (").click()
-    browser.get(base_url + "/en-gb/catalog/")
+    browser.get(Urls(base_url).url_cataloge())
     browser.find_element(By.LINK_TEXT, "Continue").click()
 
 
 def test_card_of_goods(browser, base_url):
-    browser.get(base_url + "/en-gb/product/desktops/mac/imac")
+    browser.get(base_url)
+    browser.execute_script("window.scrollBy(0, 800)")
+    time.sleep(3)
+    MainPage(browser).feautured_product_click()
     browser.find_element(By.CSS_SELECTOR, "#content > div.row.mb-3 > div:nth-child(1) > div > a > img")
-    browser.find_element(By.CSS_SELECTOR, "#button-cart").click()
-    browser.find_element(By.CSS_SELECTOR, "#content > div.row.mb-3 > div:nth-child(2) > "
-                                          "div.rating > p > span:nth-child(1) > i").click()
+    CardGood(browser).add_to_card()
+    CardGood(browser).add_to_favor()
     hoverable = browser.find_element(By.CSS_SELECTOR, "#content > div.row.mb-3 > div:nth-child(2) > "
                                           "form > div > button:nth-child(1)")
     ActionChains(browser)\
@@ -47,79 +57,82 @@ def test_card_of_goods(browser, base_url):
     browser.find_element(By.ID, "input-quantity")
 
 
-def test_administration(browser, base_url):
-    login = 'user'
-    password = 'bitnami'
-    browser.get(base_url + "administration/")
-    browser.find_element(By.CSS_SELECTOR, "#content > div > div > div > div > div.card-header")
-    browser.find_element(By.CSS_SELECTOR, '#form-login > div.text-end > button').click()
-    browser.find_element(By.CSS_SELECTOR, '#alert')
-    name = browser.find_element(By.ID, 'input-username')
-    password_ = browser.find_element(By.ID, 'input-password')
-    name.send_keys('89188085879')
-    password_.send_keys('123')
-    name.clear()
-    password_.clear()
-    name.send_keys(login)
-    password_.send_keys(password)
-    browser.find_element(By.CSS_SELECTOR, '#form-login > div.text-end > button').click()
+def test_administration_login(browser, base_url, admin_login, admin_password):
+    browser.get(Urls(base_url).url_admin())
+    UserPage(browser).login_button()
+    UserPage(browser).alert()
+    UserPage(browser).login(random_phone(), random_string())
+    UserPage(browser).alert()
+    UserPage(browser).login_clear()
+    UserPage(browser).password_clear()
+    UserPage(browser).login(admin_login, admin_password)
     button = WebDriverWait(browser, 5).until(
         EC.visibility_of_element_located((By.CSS_SELECTOR, '#nav-profile > a > img')))
     button.click()
-    browser.find_element(By.CSS_SELECTOR, '#nav-profile > ul')
-    browser.find_element(By.CSS_SELECTOR, '#nav-logout > a')
+    AdminsPage(browser).profile()
+    AdminsPage(browser).logout()
 
 
 def test_registration(browser, base_url):
-    browser.get(base_url + "/index.php?route=account/register")
+    browser.get(Urls(base_url).url_reg())
     browser.find_element(By.ID, 'content')
-    assert browser.find_element(By.CSS_SELECTOR, '#content > h1').text == 'Register Account'
-    browser.find_element(By.NAME, 'firstname').send_keys('Вася')
-    browser.find_element(By.NAME, 'lastname').send_keys('Иванов')
-    browser.find_element(By.NAME, 'email').send_keys('vas@mail.ru')
-    browser.find_element(By.NAME, 'password').send_keys('VasVas234.')
-    browser.find_element(By.NAME, 'agree').click()
-    browser.find_element(By.CSS_SELECTOR, '#form-register > div > button')
+    assert RegPage(browser).title() == 'Register Account'
+    RegPage(browser).registation_2agree(create_random_user()["name"], create_random_user()["last_name"],
+                                        random_email(), random_string())
 
 
 def test_add_to_cart(browser, base_url):
     browser.get(base_url)
     browser.execute_script("window.scrollBy(0, 800)")
-    tovar = browser.find_element(By.CSS_SELECTOR, '#content > '
-                                                  'div.row.row-cols-1.row-cols-sm-2.row-cols-md-3.row-cols-xl-4 >'
-                                                  ' div:nth-child(1) > div > div.content > div > h4 > a')
-    price = browser.find_element(By.CSS_SELECTOR, '#content >'
-                                                  ' div.row.row-cols-1.row-cols-sm-2.row-cols-md-3.row-cols-xl-4 >'
-                                                  ' div:nth-child(1) > div > div.content > div > div > span.price-new')
+    time.sleep(3)
+    tovar = MainPage(browser).feautured_product_name()
+    MainPage(browser).feautured_product_click()
+    CardGood(browser).add_to_card()
     time.sleep(6)
-    browser.find_element(By.CSS_SELECTOR, '#content > div.row.row-cols-1.row-cols-sm-2.row-cols-md-3.row-cols-xl-4 '
-                                          '> div:nth-child(1) > '
-                                          'div > div.content > form > div > button:nth-child(1)').click()
-
+    price = CardGood(browser).price()
+    CardGood(browser).bucket()
     browser.execute_script("arguments[0].scrollIntoView(true);",
                            browser.find_element(By.CSS_SELECTOR, '#header-cart > div > button'))
     time.sleep(6)
-    browser.find_element(By.CSS_SELECTOR, '#header-cart > div > button').click()
-    tovar_v_korzine = browser.find_element(By.CSS_SELECTOR, '#header-cart > div > ul > li > '
-                                                            'table > tbody > tr > td.text-start > a')
-    price_v_korzine = browser.find_element(By.CSS_SELECTOR, '#header-cart > div > ul > li > '
-                                                            'table > tbody > tr > td:nth-child(4)')
-    assert tovar.text == tovar_v_korzine.text
-    assert price.text == price_v_korzine.text
+    tovar_after_vibor = CardGood(browser).tovar_v_korzine()
+    price_after_vibor = CardGood(browser).price_v_korzine()
+    assert tovar == tovar_after_vibor
+    assert price == price_after_vibor
 
 
 def test_change_currency(browser, base_url):
     browser.get(base_url)
-    browser.find_element(By.XPATH, "//*[@id='form-currency']/div/a/span").click()
-    meny_currency = browser.find_element(By.XPATH, "//*[@id='form-currency']/div/ul")
-    meny_currency.find_element(By.PARTIAL_LINK_TEXT, "€ Euro").click()
-    text1 = browser.find_element(By.CSS_SELECTOR, "#form-currency > div > a > strong").text
+    Currency(browser).open_meny()
+    Currency(browser).close_meny()
+    Currency(browser).euro()
+    text1 = Currency(browser).cur_text()
     browser.find_element(By.CSS_SELECTOR, '#narbar-menu > ul > li:nth-child(1) > a').click()
     browser.find_element(By.CSS_SELECTOR, '#narbar-menu > ul > li:nth-child(1) > div '
                                           '> div > ul > li:nth-child(2) > a').click()
     text2 = browser.find_element(By.CSS_SELECTOR, '#product-list > div > div > div.content '
                                                   '> div > div > span.price-new').text
     assert text1 in text2
+
+
+def test_admin_add_new_good(browser, base_url, admin_login, admin_password):
+    browser.get(Urls(base_url).url_admin())
+    UserPage(browser).login(admin_login, admin_password)
+    time.sleep(2)
+    AdminsPage(browser).add_new_good(create_random_name_of_good(), create_random_name_of_good(), create_random_model(),
+                                     random_string())
+    time.sleep(4)
+
+
+def test_admin_add_new_good_and_delete(browser, base_url, admin_login, admin_password):
+    browser.get(Urls(base_url).url_admin())
+    UserPage(browser).login(admin_login, admin_password)
+    time.sleep(2)
+    name_of_good = create_random_name_of_good()
+    AdminsPage(browser).add_new_good(name_of_good, name_of_good, create_random_model(),
+                                     random_string())
+    AdminsPage(browser).go_to_products()
+    AdminsPage(browser).delete_new_create_good(name_of_good)
+
 
 
 
