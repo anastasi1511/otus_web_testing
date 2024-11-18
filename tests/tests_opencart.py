@@ -1,4 +1,6 @@
 import time
+
+import allure
 from selenium.webdriver.common.by import By
 from selenium.webdriver import ActionChains
 from selenium.webdriver.support.ui import WebDriverWait
@@ -14,6 +16,7 @@ from helpers import (random_string, random_phone, create_random_user, random_ema
                      create_random_model)
 
 
+@allure.title('Главный экран')
 def test_main_page(browser, base_url):
     browser.get(base_url)
     assert "Your Store" in browser.title
@@ -25,6 +28,7 @@ def test_main_page(browser, base_url):
     MainPage(browser).feautured_product_click()
 
 
+@allure.title('Каталог товаров')
 def test_cataloge(browser, base_url):
     browser.get(Urls(base_url).url_cataloge())
     browser.find_element(By.CSS_SELECTOR, "#column-left").find_element(By.CSS_SELECTOR,
@@ -41,6 +45,7 @@ def test_cataloge(browser, base_url):
     browser.find_element(By.LINK_TEXT, "Continue").click()
 
 
+@allure.title('Действия в карточке товара')
 def test_card_of_goods(browser, base_url):
     browser.get(base_url)
     browser.execute_script("window.scrollBy(0, 800)")
@@ -57,6 +62,7 @@ def test_card_of_goods(browser, base_url):
     browser.find_element(By.ID, "input-quantity")
 
 
+@allure.title('Авторизация под администратором')
 def test_administration_login(browser, base_url, admin_login, admin_password):
     browser.get(Urls(base_url).url_admin())
     UserPage(browser).login_button()
@@ -73,6 +79,7 @@ def test_administration_login(browser, base_url, admin_login, admin_password):
     AdminsPage(browser).logout()
 
 
+@allure.title('Регистрация')
 def test_registration(browser, base_url):
     browser.get(Urls(base_url).url_reg())
     browser.find_element(By.ID, 'content')
@@ -81,6 +88,7 @@ def test_registration(browser, base_url):
                                         random_email(), random_string())
 
 
+@allure.title('Добавление товара')
 def test_add_to_cart(browser, base_url):
     browser.get(base_url)
     browser.execute_script("window.scrollBy(0, 800)")
@@ -100,6 +108,7 @@ def test_add_to_cart(browser, base_url):
     assert price == price_after_vibor
 
 
+@allure.title('Смена валюты')
 def test_change_currency(browser, base_url):
     browser.get(base_url)
     Currency(browser).open_meny()
@@ -114,24 +123,33 @@ def test_change_currency(browser, base_url):
     assert text1 in text2
 
 
+@allure.title('Добавление нового товара в разделе админа')
 def test_admin_add_new_good(browser, base_url, admin_login, admin_password):
     browser.get(Urls(base_url).url_admin())
     UserPage(browser).login(admin_login, admin_password)
     time.sleep(2)
-    AdminsPage(browser).add_new_good(create_random_name_of_good(), create_random_name_of_good(), create_random_model(),
-                                     random_string())
-    time.sleep(4)
+    add_new_good = AdminsPage(browser)
+    add_new_good.menu_catalog()
+    add_new_good.go_to_products()
+    add_new_good.add_button_plus()
+    add_new_good.add_new_good(create_random_name_of_good(), create_random_model(), random_string())
+    add_new_good.save_button()
 
 
+@allure.title('Добавление нового товара и удаление в разделе админа')
 def test_admin_add_new_good_and_delete(browser, base_url, admin_login, admin_password):
     browser.get(Urls(base_url).url_admin())
     UserPage(browser).login(admin_login, admin_password)
     time.sleep(2)
     name_of_good = create_random_name_of_good()
-    AdminsPage(browser).add_new_good(name_of_good, name_of_good, create_random_model(),
-                                     random_string())
-    AdminsPage(browser).go_to_products()
-    AdminsPage(browser).delete_new_create_good(name_of_good)
+    add_new_and_delete = AdminsPage(browser)
+    add_new_and_delete.menu_catalog()
+    add_new_and_delete.go_to_products()
+    add_new_and_delete.add_button_plus()
+    add_new_and_delete.add_new_good(name_of_good, create_random_model(), random_string())
+    add_new_and_delete.go_to_products()
+    add_new_and_delete.filter_by_name(name_of_good)
+    add_new_and_delete.delete_new_good()
 
 
 
